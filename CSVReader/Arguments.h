@@ -1,4 +1,8 @@
 #pragma once
+
+#ifndef __ARGUMENTS_H__
+#define __ARGUMENTS_H__
+
 #include <vector>
 #include <string>
 #include <map>
@@ -23,3 +27,4 @@ private:
 	arguments_map_t _args;
 };
 
+#endif

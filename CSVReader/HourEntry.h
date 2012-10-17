@@ -1,4 +1,8 @@
 #pragma once
+
+#ifndef __HOURENTRY_H__
+#define __HOURENTRY_H__
+
 #include <string>
 
 using namespace std;
@@ -21,3 +25,4 @@ private:
 	wstring _responsible, _comments, _rateType;
 };
 
+#endif

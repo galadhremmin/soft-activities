@@ -1,4 +1,8 @@
 #pragma once
+
+#ifndef __APP_H__
+#define __APP_H__
+
 #include <string>
 #include "Arguments.h"
 #include "HourEntry.h"
@@ -33,3 +37,4 @@ private:
 	hours_map_t _hours;
 };
 
+#endif

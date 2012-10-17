@@ -1,4 +1,8 @@
 #pragma once
+
+#ifndef __CSV_H__
+#define __CSV_H__
+
 #include <map>
 #include <vector>
 #include <string>
@@ -33,3 +37,4 @@ private:
 	row_list_t _rows;
 };
 
+#endif

@@ -1,4 +1,8 @@
 #pragma once
+
+#ifndef __HTMLDOCUMENT_H__
+#define __HTMLDOCUMENT_H__
+
 #include <string>
 #include "HTMLElement.h"
 
@@ -10,7 +14,7 @@ namespace HTML
 		CHTMLDocument(void);
 		~CHTMLDocument(void);
 
-		void CHTMLDocument::add(const CHTMLElement * const child);
+		void add(const CHTMLElement * const child);
 		const wstring toString(void) const;
 
 	private:
@@ -18,3 +22,4 @@ namespace HTML
 	};
 }
 
+#endif

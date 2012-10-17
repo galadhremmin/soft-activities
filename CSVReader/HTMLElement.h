@@ -1,4 +1,8 @@
 #pragma once
+
+#ifndef __HTMLELEMENT_H__
+#define __HTMLELEMENT_H__
+
 #include <map>
 #include <vector>
 #include <string>
@@ -31,3 +35,5 @@ namespace HTML {
 	};
 
 }
+
+#endif
