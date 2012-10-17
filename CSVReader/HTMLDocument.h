@@ -8,18 +8,18 @@
 
 namespace HTML
 {
-	class CHTMLDocument : public CHTMLElement
-	{
-	public:
-		CHTMLDocument(void);
-		~CHTMLDocument(void);
+    class CHTMLDocument : public CHTMLElement
+    {
+    public:
+        CHTMLDocument(void);
+        ~CHTMLDocument(void);
 
-		void add(CHTMLElement *child);
-		const wstring toString(void) const;
+        void add(CHTMLElement *child);
+        const wstring toString(void) const;
 
-	private:
-		CHTMLElement *_body;
-	};
+    private:
+        CHTMLElement *_body;
+    };
 }
 
 #endif

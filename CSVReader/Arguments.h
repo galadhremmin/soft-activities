@@ -11,20 +11,20 @@ using namespace std;
 class CArguments
 {
 public:
-	typedef vector<wstring> referenced_files_t;
-	typedef map<wstring, wstring*> arguments_map_t;
+    typedef vector<wstring> referenced_files_t;
+    typedef map<wstring, wstring*> arguments_map_t;
 
-	CArguments(int argc, const char **argv);
-	~CArguments(void);
+    CArguments(int argc, const char **argv);
+    ~CArguments(void);
 
-	const referenced_files_t files(void) const;
-	const arguments_map_t args(void) const;
+    const referenced_files_t files(void) const;
+    const arguments_map_t args(void) const;
 
-	void free(void);
+    void free(void);
 
 private:
-	referenced_files_t _refFiles;
-	arguments_map_t _args;
+    referenced_files_t _refFiles;
+    arguments_map_t _args;
 };
 
 #endif

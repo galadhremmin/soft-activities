@@ -4,9 +4,9 @@
 using namespace HTML;
 
 CHTMLDocument::CHTMLDocument(void) 
-	: CHTMLElement(L"html") {
+    : CHTMLElement(L"html") {
 
-	CHTMLElement *head = new CHTMLElement(L"head", L"<title>Tidsummering av aktiviteter</title>\n"
+    CHTMLElement *head = new CHTMLElement(L"head", L"<title>Tidsummering av aktiviteter</title>\n"
         L"<meta charset=\"utf-8\">\n"
         L"<style>body { font: 12pt 'segoe ui', helvetica, sans-serif; }\n"
         L"table { border-collapse:collapse; width:100%; }\n"
@@ -15,12 +15,12 @@ CHTMLDocument::CHTMLDocument(void)
         L"tbody tr:hover { background-color: #eee; }\n"
         L"</style>\n"),
 
-		*body = new CHTMLElement(L"body");
+        *body = new CHTMLElement(L"body");
 
-	CHTMLElement::add(head);
-	CHTMLElement::add(body);
+    CHTMLElement::add(head);
+    CHTMLElement::add(body);
 
-	_body = body;
+    _body = body;
 }
 
 
@@ -29,14 +29,14 @@ CHTMLDocument::~CHTMLDocument(void)  {
 }
 
 void CHTMLDocument::add(CHTMLElement *child) {
-	_body->add(child);
+    _body->add(child);
 }
 
 const wstring CHTMLDocument::toString(void) const {
-	wstringstream output;
+    wstringstream output;
 
-	output << "<!DOCTYPE html>" << endl;
-	output << CHTMLElement::toString();
+    output << "<!DOCTYPE html>" << endl;
+    output << CHTMLElement::toString();
 
-	return output.str();
+    return output.str();
 }
