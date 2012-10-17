@@ -56,20 +56,64 @@ const CApp::retcode_t CApp::run(void) {
 }
 
 const bool CApp::readGroups(const wstring fileName) {
+
+#ifdef DEBUG
+    wcout << L"Reads activity groups from " << fileName << endl;
+#endif
+    
+    CCSV csv(fileName, CCSV::CSV_TRIM | CCSV::CSV_NO_HEADERS);
+
+    if (!csv.read()) {
+        return false;
+    }
+    
+    CCSV::row_t::const_iterator activity;
+    for (CCSV::const_iterator it = csv.begin(); it != csv.end(); ++it) {
+        activity = (*it).begin();
+        
+        // ignore empty groups
+        if ((*it).size() < 2) {
+            continue;
+        }
+        
+        groups_t *group = &_groups[(*it).at(L"0")];
+        
+#ifdef DEBUG
+        wcout << L"Group " << (*it).at(L"0") << L": ";
+#endif
+
+        // skip the first activity, as it's the name of the group
+        for (++activity; activity != (*it).end(); ++activity) {
+            group->push_back((*activity).second);
+#ifdef DEBUG
+            wcout << (*activity).second << L", ";
+#endif
+        }
+        
+#ifdef DEBUG
+        wcout << endl << endl;
+#endif
+    }
+
 	return true;
 }
 
 const bool CApp::readHours(const wstring fileName) {
     
 #ifdef DEBUG
-    wcout << L"Loading file " << fileName << endl;
+    wcout << L"Reads activities from " << fileName << endl;
 #endif
     
-	CCSV csv(fileName);
+	CCSV csv(fileName, CCSV::CSV_TRIM);
 
 	if (!csv.read()) {
 		return false;
 	}
+    
+    static const wchar_t *valueKeys[] = {
+        L"textBox2", L"textBox1", L"htmlTextBox1", L"textBox5", L"CommentsTB"
+    };
+    static const size_t valueKeysCount = 5; 
 
 	CHourEntry *entry;
 	const CCSV::row_t *row;
@@ -79,20 +123,23 @@ const bool CApp::readHours(const wstring fileName) {
 #if DEBUG
         cout << "Reading map: " << endl;
         for (CCSV::row_t::const_iterator itd = row->begin(); itd != row->end(); ++itd) {
-            wcout << (*itd).first << L": " << (*itd).second << endl;
+            wcout << (*itd).first << L": " << (*itd).second << ", ";
         }
 #endif
-
-        float hours = Utilities::swedishNotation(row->at(L"textBox2")),
-              rate  = Utilities::swedishNotation(row->at(L"htmlTextBox1"));
         
+        for (size_t i = 0; i < valueKeysCount; ++i) {
+            if (row->find(valueKeys[i]) == row->end()) {
+                return false;
+            }
+        }
+
 		entry = new CHourEntry(
-			hours,
-			row->at(L"textBox1"), 
-            rate, 
+			Utilities::swedishNotation(row->at(valueKeys[0])),
+			row->at(valueKeys[1]), 
+            Utilities::swedishNotation(row->at(valueKeys[2])), 
 			0L, 
-			row->at(L"textBox5"), 
-			row->at(L"CommentsTB")
+			row->at(valueKeys[3]), 
+			row->at(valueKeys[4])
 		);
 
 		_hours[row->at(L"htmlTextBox9")].push_back(entry);
@@ -101,11 +148,23 @@ const bool CApp::readHours(const wstring fileName) {
 	return true;
 }
 
+const map<wstring, wstring> *CApp::getGroups(void) const {
+    return NULL;
+}
+
 const bool CApp::output(void) const {
 	CHTMLDocument doc;
-	CHTMLElement *table = new CHTMLElement(L"table");
-	CHTMLElement *row;
+	CHTMLElement *table = new CHTMLElement(L"table"),
+                 *thead  = new CHTMLElement(L"thead"),
+                 *tbody  = new CHTMLElement(L"tbody"),
+                 *tfoot  = new CHTMLElement(L"tfoot"),
+                 *row;
 	double total = 0;
+    
+	row = new CHTMLElement(L"tr");
+	row->add(new CHTMLElement(L"th", L"Aktivitet"));
+	row->add(new CHTMLElement(L"th", L"Timmar"));
+	thead->add(row);
 
 	for (hours_map_t::const_iterator activity = _hours.begin(); activity != _hours.end(); ++activity) {
 		double localTotal = 0;
@@ -119,13 +178,18 @@ const bool CApp::output(void) const {
 		row = new CHTMLElement(L"tr");
 		row->add(new CHTMLElement(L"td", (*activity).first));
 		row->add(new CHTMLElement(L"td", Utilities::toString(localTotal)));
-		table->add(row);
+		tbody->add(row);
 	}
 
 	row = new CHTMLElement(L"tr");
 	row->add(new CHTMLElement(L"th", L"Totalt"));
 	row->add(new CHTMLElement(L"th", Utilities::toString(total)));
-	table->add(row);
+	tfoot->add(row);
+    
+    table->add(thead);
+    table->add(tbody);
+    table->add(tfoot);
+    
 	doc.add(table);
 
 	wofstream htmlFile("output.html");

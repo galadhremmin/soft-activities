@@ -6,13 +6,12 @@
 #include <fstream>
 #include <sstream>
 
-CCSV::CCSV(wstring fileName)
-{
+CCSV::CCSV(const wstring fileName, const int flags) {
 	_fileName = fileName;
+    _flags = flags;
 }
 
-CCSV::~CCSV(void)
-{
+CCSV::~CCSV(void) {
 
 }
 
@@ -40,6 +39,8 @@ const bool CCSV::read(void) {
 		}
 	}
 
+    row_t rowObj;
+    bool useHeaders = !(_flags & CSV_NO_HEADERS);
 	while (!file.eof()) {
 		getline(file, csvRow);
 
@@ -47,28 +48,40 @@ const bool CCSV::read(void) {
 			continue;
 		}
 
-		if (headers.size() < 1) {
+		if (useHeaders && headers.size() < 1) {
             
             for (vector<wstring>::const_iterator it = row.begin(); it != row.end(); ++it) {
                 headers.push_back(*it);
             }
             
-		} else {
-			row_t rowObj;
+		} else if (useHeaders) {
 			wstring value;
 
 			for (vector<wstring>::const_iterator header = headers.begin(), item = row.begin(); header != headers.end(); ++header) {
 				value = L"";
+                
+                // cover columns without values 
 				if (item != row.end()) {
 					value = *item;
 					++item;
 				}
 
-				rowObj[Utilities::trim(*header)] = Utilities::trim(value);
+				rowObj[*header] = value;
 			}
 
 			_rows.push_back(rowObj);
-		}
+		} else {
+            
+            vector<wstring>::const_iterator item = row.begin();
+            for (int i = 0; item != row.end(); ++i) {
+                rowObj[Utilities::toString(i)] = *item;
+            
+                ++item;
+            }
+            
+            _rows.push_back(rowObj);
+            
+        }
 	}
 
 	return true;
@@ -150,6 +163,11 @@ const bool CCSV::explode(const wstring& source, vector<wstring> &destination) {
 		++it;
 
 		if ((!content || it == source.end()) && buffer.str().length() > 0) {
+            
+            if ((_flags & CSV_TRIM) > 0) {
+                buffer.str(Utilities::trim(buffer.str()));
+            }
+        
 			destination.push_back(buffer.str());
 			buffer.str(L"");
 		}
