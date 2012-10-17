@@ -19,16 +19,23 @@ const bool CCSV::read(void) {
     
     // basic_ifstream requires the file name to be ANSI encoded, but the file name
     // is UTF-8. This performs the conversion.
-    char *ansiFile = new char[_fileName.size() + 1];
-    sprintf(ansiFile, "%ls", _fileName.c_str());
-    wifstream file(ansiFile);
+    size_t size = _fileName.size() + 1;
+    char *ansiFile = new char[size];
+    memset(ansiFile, 0, size);
+    size = wcstombs(ansiFile, _fileName.c_str(), size);
+    ansiFile[size] = 0;
+    
+    wfstream file(ansiFile, ios_base::in);
+    
+    // Deallocate the ANSI array
     delete [] ansiFile;
+    ansiFile = NULL;
     
     wstring csvRow;
     vector<wstring> row, headers;
     const unsigned bom[] = { 0xEF, 0xBB, 0xBF };
 
-    if (file.bad()) {
+    if (!file.good()) {
         return false;
     }
 
@@ -39,7 +46,6 @@ const bool CCSV::read(void) {
         }
     }
 
-    row_t rowObj;
     bool useHeaders = !(_flags & CSV_NO_HEADERS);
     while (!file.eof()) {
         getline(file, csvRow);
@@ -47,7 +53,8 @@ const bool CCSV::read(void) {
         if (!explode(csvRow, row)) {
             continue;
         }
-
+        
+        row_t rowObj;
         if (useHeaders && headers.size() < 1) {
             
             for (vector<wstring>::const_iterator it = row.begin(); it != row.end(); ++it) {
@@ -71,7 +78,6 @@ const bool CCSV::read(void) {
 
             _rows.push_back(rowObj);
         } else {
-            
             vector<wstring>::const_iterator item = row.begin();
             for (int i = 0; item != row.end(); ++i) {
                 rowObj[Utilities::toString(i)] = *item;

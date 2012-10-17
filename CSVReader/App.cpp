@@ -123,7 +123,7 @@ const bool CApp::readHours(const wstring fileName) {
 #if DEBUG
         cout << "Reading map: " << endl;
         for (CCSV::row_t::const_iterator itd = row->begin(); itd != row->end(); ++itd) {
-            wcout << (*itd).first << L": " << (*itd).second << ", ";
+            wcout << (*itd).first << L": " << (*itd).second << L", ";
         }
 #endif
         
@@ -148,8 +148,78 @@ const bool CApp::readHours(const wstring fileName) {
     return true;
 }
 
-const map<wstring, wstring> *CApp::getGroups(void) const {
-    return NULL;
+const map<wstring, wstring> *CApp::group(double &total) const {
+    map<wstring, wstring> *res = new map<wstring, wstring>();
+    double localTotal = 0;
+
+    total = 0;
+
+    // no defined groups
+    if (_groups.size() < 1) {
+
+        // iterate through all activities and sum their respective hour entries
+        for (hours_map_t::const_iterator activity = _hours.begin(); activity != _hours.end(); ++activity) {
+            
+            localTotal = 0;
+            for (hours_list_t::const_iterator item = (*activity).second.begin(); item != (*activity).second.end(); ++item) {
+                localTotal += (*item)->getHours();
+            }
+
+            // add the local total to the grand total
+            total += localTotal;
+
+            (*res)[(*activity).first] = Utilities::toString(localTotal);
+        }
+    } else {
+        vector<wstring> includedAct;
+
+        // iterate through all assigned groups and sum activities
+        for (groups_map_t::const_iterator group = _groups.begin(); group != _groups.end(); ++group) {
+
+            localTotal = 0;
+
+            // iterate through all activities (identified by name)
+            for (groups_t::const_iterator activityName = (*group).second.begin(); activityName != (*group).second.end(); ++activityName) {
+
+                // sought activity might not be found (or lack recorded hours due to e.g. deprecation)
+                const hours_list_t *hours = &_hours.at(*activityName);
+                if (hours == NULL) {
+                    continue;
+                }
+
+                for (hours_list_t::const_iterator hour = hours->begin(); hour != hours->end(); ++hour) {
+                    localTotal += (*hour)->getHours();
+                }
+
+                includedAct.push_back(*activityName);
+            }
+
+            total += localTotal;
+            (*res)[(*group).first] = Utilities::toString(localTotal);
+        }
+
+        // find activities not recorded / included, and add them to a group by their name
+        vector<wstring>::const_iterator it;
+        for (hours_map_t::const_iterator activity = _hours.begin(); activity != _hours.end(); ++activity) {
+            
+            it = find(includedAct.begin(), includedAct.end(), (*activity).first);
+            if (it != includedAct.end()) {
+                continue;
+            }
+
+            localTotal = 0;
+            for (hours_list_t::const_iterator item = (*activity).second.begin(); item != (*activity).second.end(); ++item) {
+                localTotal += (*item)->getHours();
+            }
+
+            // add the local total to the grand total
+            total += localTotal;
+
+            (*res)[(*activity).first] = Utilities::toString(localTotal);
+        }
+    }
+
+    return res;
 }
 
 const bool CApp::output(void) const {
@@ -160,26 +230,22 @@ const bool CApp::output(void) const {
                  *tfoot  = new CHTMLElement(L"tfoot"),
                  *row;
     double total = 0;
-    
+    const map<wstring, wstring> *entries = this->group(total);
+
     row = new CHTMLElement(L"tr");
     row->add(new CHTMLElement(L"th", L"Aktivitet"));
     row->add(new CHTMLElement(L"th", L"Timmar"));
     thead->add(row);
 
-    for (hours_map_t::const_iterator activity = _hours.begin(); activity != _hours.end(); ++activity) {
-        double localTotal = 0;
-
-        for (hours_list_t::const_iterator item = (*activity).second.begin(); item != (*activity).second.end(); ++item) {
-            localTotal += (*item)->getHours();
-        }
-
-        total += localTotal;
-
+    for (map<wstring, wstring>::const_iterator entry = entries->begin(); entry != entries->end(); ++entry) {
         row = new CHTMLElement(L"tr");
-        row->add(new CHTMLElement(L"td", (*activity).first));
-        row->add(new CHTMLElement(L"td", Utilities::toString(localTotal)));
+        row->add(new CHTMLElement(L"td", (*entry).first));
+        row->add(new CHTMLElement(L"td", Utilities::toString((*entry).second)));
         tbody->add(row);
     }
+
+    delete entries;
+    entries = NULL;
 
     row = new CHTMLElement(L"tr");
     row->add(new CHTMLElement(L"th", L"Totalt"));

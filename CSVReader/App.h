@@ -34,7 +34,7 @@ public:
 protected:
     const bool readGroups(const wstring fileName);
     const bool readHours(const wstring fileName);
-    const map<wstring, wstring> *getGroups(void) const;
+    const map<wstring, wstring> *group(double &total) const;
     const bool output(void) const;
 
 private:
