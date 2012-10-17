@@ -37,5 +37,22 @@ namespace Utilities
 
 		return cast<float>(tmp);
 	}
+    
+    // trim from start
+    static inline wstring ltrim(wstring s) {
+        s.erase(s.begin(), find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
+        return s;
+    }
+    
+    // trim from end
+    static inline wstring rtrim(wstring s) {
+        s.erase(find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
+        return s;
+    }
+    
+    // trim from both ends
+    static inline wstring trim(const wstring s) {
+        return ltrim(rtrim(s));
+    }
 }
 

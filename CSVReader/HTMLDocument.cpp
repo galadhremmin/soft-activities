@@ -23,7 +23,7 @@ CHTMLDocument::~CHTMLDocument(void)  {
 
 }
 
-void CHTMLDocument::add(const CHTMLElement * const child) {
+void CHTMLDocument::add(CHTMLElement *child) {
 	_body->add(child);
 }
 

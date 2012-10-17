@@ -60,6 +60,11 @@ const bool CApp::readGroups(const wstring fileName) {
 }
 
 const bool CApp::readHours(const wstring fileName) {
+    
+#ifdef DEBUG
+    wcout << L"Loading file " << fileName << endl;
+#endif
+    
 	CCSV csv(fileName);
 
 	if (!csv.read()) {
@@ -70,11 +75,21 @@ const bool CApp::readHours(const wstring fileName) {
 	const CCSV::row_t *row;
 	for (CCSV::const_iterator it = csv.begin(); it != csv.end(); ++it) {
 		row = &*it;
+        
+#if DEBUG
+        cout << "Reading map: " << endl;
+        for (CCSV::row_t::const_iterator itd = row->begin(); itd != row->end(); ++itd) {
+            wcout << (*itd).first << L": " << (*itd).second << endl;
+        }
+#endif
 
+        float hours = Utilities::swedishNotation(row->at(L"textBox2")),
+              rate  = Utilities::swedishNotation(row->at(L"htmlTextBox1"));
+        
 		entry = new CHourEntry(
-			Utilities::swedishNotation(row->at(L"textBox2")),
+			hours,
 			row->at(L"textBox1"), 
-			Utilities::swedishNotation(row->at(L"htmlTextBox1")), 
+            rate, 
 			0L, 
 			row->at(L"textBox5"), 
 			row->at(L"CommentsTB")
@@ -117,7 +132,11 @@ const bool CApp::output(void) const {
 	htmlFile << doc.toString();
 	htmlFile.close();
 
+#ifdef __MACH__
+    system("open output.html");
+#elif WIN32
 	system("explorer output.html");
-
+#endif
+    
 	return true;
 }

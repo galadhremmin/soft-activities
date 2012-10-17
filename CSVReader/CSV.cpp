@@ -1,14 +1,10 @@
 #include "CSV.h"
+#include "Utilities.h"
+#include <stdio.h>
+#include <string>
 #include <algorithm>
 #include <fstream>
 #include <sstream>
-
-template <class particle_t>
-inline static void addAll(const vector<particle_t> &source, vector<particle_t> &destination) {
-	for (vector<particle_t>::const_iterator it = source.begin(); it != source.end(); ++it) {
-		destination.push_back(*it);
-	}
-}
 
 CCSV::CCSV(wstring fileName)
 {
@@ -21,9 +17,16 @@ CCSV::~CCSV(void)
 }
 
 const bool CCSV::read(void) {
-	wifstream file(_fileName);
+    
+    // basic_ifstream requires the file name to be ANSI encoded, but the file name
+    // is UTF-8. This performs the conversion.
+    char *ansiFile = new char[_fileName.size() + 1];
+    sprintf(ansiFile, "%ls", _fileName.c_str());
+    wifstream file(ansiFile);
+    delete [] ansiFile;
+    
 	wstring csvRow;
-	vector<const wstring> row, headers;
+	vector<wstring> row, headers;
 	const unsigned bom[] = { 0xEF, 0xBB, 0xBF };
 
 	if (file.bad()) {
@@ -45,19 +48,23 @@ const bool CCSV::read(void) {
 		}
 
 		if (headers.size() < 1) {
-			addAll(row, headers);
+            
+            for (vector<wstring>::const_iterator it = row.begin(); it != row.end(); ++it) {
+                headers.push_back(*it);
+            }
+            
 		} else {
 			row_t rowObj;
 			wstring value;
 
-			for (vector<const wstring>::const_iterator header = headers.begin(), item = row.begin(); header != headers.end(); ++header) {
+			for (vector<wstring>::const_iterator header = headers.begin(), item = row.begin(); header != headers.end(); ++header) {
 				value = L"";
 				if (item != row.end()) {
 					value = *item;
 					++item;
 				}
 
-				rowObj[*header] = value;
+				rowObj[Utilities::trim(*header)] = Utilities::trim(value);
 			}
 
 			_rows.push_back(rowObj);
@@ -83,7 +90,7 @@ CCSV::const_iterator CCSV::end(void) const {
 	return _rows.end();
 }
 
-const bool CCSV::explode(const wstring& source, vector<const wstring> &destination) {
+const bool CCSV::explode(const wstring& source, vector<wstring> &destination) {
 	bool content = false, quoted = false;
 	wostringstream buffer;
 

@@ -2,6 +2,7 @@
 ## Project
 #################
 output.html
+*.csv
 
 #################
 ## Mac OS X

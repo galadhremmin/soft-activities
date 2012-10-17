@@ -30,7 +30,7 @@ public:
 	const_iterator end(void) const;
 
 protected:
-	const static bool explode(const wstring& source, vector<const wstring> &destination);
+	const static bool explode(const wstring& source, vector<wstring> &destination);
 
 private:
 	wstring _fileName;

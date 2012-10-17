@@ -14,7 +14,7 @@ namespace HTML
 		CHTMLDocument(void);
 		~CHTMLDocument(void);
 
-		void add(const CHTMLElement * const child);
+		void add(CHTMLElement *child);
 		const wstring toString(void) const;
 
 	private:

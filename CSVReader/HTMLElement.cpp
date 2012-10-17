@@ -30,12 +30,12 @@ CHTMLElement::~CHTMLElement(void) {
 	_children.clear();
 }
 
-void CHTMLElement::add(const CHTMLElement * const child) {
+void CHTMLElement::add(CHTMLElement *child) {
 	_children.push_back(child);
 }
 
 void CHTMLElement::attr(const wstring key, const wstring value) {
-	const wstring *item;
+	wstring *item;
 
 	if (this->attr(key) != NULL) {
 		item = _attr.at(key);
