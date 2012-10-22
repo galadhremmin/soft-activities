@@ -33,13 +33,13 @@ const bool CCSV::read(void) {
     
     wstring csvRow;
     vector<wstring> row, headers;
-    const unsigned bom[] = { 0xEF, 0xBB, 0xBF };
+    const wchar_t bom[] = { 0xEF, 0xBB, 0xBF };
 
     if (!file.good()) {
         return false;
     }
 
-    for (unsigned i = 0; i < sizeof(bom) / sizeof(unsigned); ++i) {
+    for (unsigned i = 0; i < sizeof(bom) / sizeof(wchar_t); ++i) {
         if (file.get() != bom[i]) {
             file.seekg(0);
             break;
