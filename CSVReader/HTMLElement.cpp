@@ -50,7 +50,11 @@ void CHTMLElement::attr(const wstring key, const wstring value) {
 }
 
 const wstring *CHTMLElement::attr(const wstring key) const {
-    return _attr.at(key);
+    attr_list_t::const_iterator it = _attr.find(key);
+    if (it == _attr.end())
+        return NULL;
+
+    return (*it).second;
 }
     
 const wstring CHTMLElement::toString(void) const {

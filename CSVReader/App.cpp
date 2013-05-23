@@ -182,6 +182,10 @@ const map<wstring, wstring> *CApp::group(double &total) const {
             for (groups_t::const_iterator activityName = (*group).second.begin(); activityName != (*group).second.end(); ++activityName) {
 
                 // sought activity might not be found (or lack recorded hours due to e.g. deprecation)
+                if (_hours.find(*activityName) == _hours.end()) {
+                    continue;
+                }
+                
                 const hours_list_t *hours = &_hours.at(*activityName);
                 if (hours == NULL) {
                     continue;
@@ -194,7 +198,10 @@ const map<wstring, wstring> *CApp::group(double &total) const {
                 includedAct.push_back(*activityName);
             }
 
-            total += localTotal;
+            // Group names without the * prefix are included in the total count
+            if ((*group).first[0] != '*')
+                total += localTotal;
+                
             (*res)[(*group).first] = Utilities::toString(localTotal);
         }
 
@@ -240,7 +247,12 @@ const bool CApp::output(void) const {
     for (map<wstring, wstring>::const_iterator entry = entries->begin(); entry != entries->end(); ++entry) {
         row = new CHTMLElement(L"tr");
         row->add(new CHTMLElement(L"td", (*entry).first));
-        row->add(new CHTMLElement(L"td", Utilities::toString((*entry).second)));
+        
+        CHTMLElement *elem = new CHTMLElement(L"td", Utilities::toString((*entry).second));
+        if ((*entry).first[0] == '*')
+            elem->attr(L"style", L"color:red");
+        
+        row->add(elem);
         tbody->add(row);
     }
 
