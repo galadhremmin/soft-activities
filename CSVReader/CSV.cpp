@@ -1,3 +1,8 @@
+#ifdef _WIN32
+#define _CRT_SECURE_NO_DEPRECATE
+#include <Windows.h>
+#endif
+
 #include "CSV.h"
 #include "Utilities.h"
 #include <stdio.h>
@@ -49,6 +54,30 @@ const bool CCSV::read(void) {
     bool useHeaders = !(_flags & CSV_NO_HEADERS);
     while (!file.eof()) {
         getline(file, csvRow);
+
+#ifdef WIN32
+		// Windows requires conversion from UTF8 to UTF16 to be able to represent swedish letters
+		// in the user interface.
+		if (csvRow.length() > 0)
+		{
+			string utf8;
+			utf8.assign(csvRow.begin(), csvRow.end());
+
+			const int bufLength = 2048;
+			wchar_t buf[bufLength]; 
+			int lastChar = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8.c_str(), utf8.size(), buf, bufLength);
+
+			if (lastChar > 0) {
+				if (bufLength <= lastChar) {
+					buf[bufLength - 1] = 0;
+				} else {
+					buf[lastChar] = 0;
+				}
+
+				csvRow = wstring(buf);
+			}
+		}
+#endif
 
         if (!explode(csvRow, row)) {
             continue;

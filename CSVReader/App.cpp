@@ -1,3 +1,7 @@
+#if WIN32
+#include "Win32\SoftActivities\stdafx.h"
+#include "Win32\SoftActivities\resource.h"
+#endif
 #include <iostream>
 #include <fstream>
 #include "App.h"
@@ -67,6 +71,9 @@ const bool CApp::readGroups(const wstring fileName) {
         return false;
     }
     
+	// clear existing groups
+	_groups.clear();
+
     CCSV::row_t::const_iterator activity;
     for (CCSV::const_iterator it = csv.begin(); it != csv.end(); ++it) {
         activity = (*it).begin();
@@ -229,6 +236,14 @@ const map<wstring, wstring> *CApp::group(double &total) const {
     return res;
 }
 
+const CApp::hours_map_t *CApp::getHours() const {
+	return & _hours;
+}
+
+const CApp::groups_map_t *CApp::getGroups() const {
+	return & _groups;
+}
+
 const bool CApp::output(void) const {
     CHTMLDocument doc;
     CHTMLElement *table = new CHTMLElement(L"table"),
@@ -277,7 +292,19 @@ const bool CApp::output(void) const {
 #ifdef __MACH__
     system("open output.html");
 #elif WIN32
-    system("explorer output.html");
+	wchar_t directoryPath [MAX_PATH];
+	wchar_t arguments[MAX_PATH*2];
+	GetCurrentDirectoryW(MAX_PATH, directoryPath);
+	wsprintf(arguments, L"\"C:\\Program Files\\Internet Explorer\\iexplore.exe\" \"%lS\\output.html\"", directoryPath);
+
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+	
+	ZeroMemory( &si, sizeof(si) );
+	si.cb = sizeof(si);
+	ZeroMemory( &pi, sizeof(pi) );
+	wcout << arguments << endl;
+	CreateProcess(NULL, arguments, NULL, NULL, FALSE, 0, NULL, directoryPath, &si, &pi);
 #endif
     
     return true;

@@ -30,12 +30,12 @@ public:
     ~CApp(void);
 
     const retcode_t run(void);
-
-protected:
     const bool readGroups(const wstring fileName);
     const bool readHours(const wstring fileName);
     const map<wstring, wstring> *group(double &total) const;
     const bool output(void) const;
+	const hours_map_t *getHours() const;
+	const groups_map_t *getGroups() const;
 
 private:
     CArguments *_args;
