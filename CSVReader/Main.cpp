@@ -1,6 +1,6 @@
 #include "App.h"
 
-#ifdef WIN32
+#ifdef WIN32_GUI
 #include "Win32\SoftActivities\stdafx.h"
 #include "Win32\SoftActivities\SoftActivities.h"
 

@@ -55,7 +55,7 @@ const bool CCSV::read(void) {
     while (!file.eof()) {
         getline(file, csvRow);
 
-#ifdef WIN32
+#ifdef WIN32_GUI
 		// Windows requires conversion from UTF8 to UTF16 to be able to represent swedish letters
 		// in the user interface.
 		if (csvRow.length() > 0)

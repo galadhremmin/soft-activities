@@ -1,6 +1,8 @@
-#if WIN32
+#if WIN32_GUI
 #include "Win32\SoftActivities\stdafx.h"
 #include "Win32\SoftActivities\resource.h"
+#elif WIN32
+#include <Windows.h>
 #endif
 #include <iostream>
 #include <fstream>
