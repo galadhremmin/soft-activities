@@ -1,12 +1,12 @@
-#if WIN32_GUI
+#include <iostream>
+#include <fstream>
+#include "App.h"
+#ifdef WIN32_GUI
 #include "Win32\SoftActivities\stdafx.h"
 #include "Win32\SoftActivities\resource.h"
 #elif WIN32
 #include <Windows.h>
 #endif
-#include <iostream>
-#include <fstream>
-#include "App.h"
 #include "CSV.h"
 #include "HTMLDocument.h"
 #include "HTMLElement.h"

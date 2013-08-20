@@ -3,6 +3,7 @@
 #include <Windows.h>
 #endif
 
+#include "App.h"
 #include "CSV.h"
 #include "Utilities.h"
 #include <stdio.h>

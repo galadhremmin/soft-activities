@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "SoftActivities.h"
+#include "DirectoryPathDialog.h"
 #include "..\..\Utilities.h"
 
 CSoftActivities::CSoftActivities(HINSTANCE hInstance) {
@@ -13,6 +14,11 @@ CSoftActivities::CSoftActivities(HINSTANCE hInstance) {
 CSoftActivities::~CSoftActivities() {
 	delete _consoleApp;
 	_consoleApp = NULL;
+
+	if (_config != NULL) {
+		delete _config;
+		_config = NULL;
+	}
 }
 
 const int CSoftActivities::run() {
@@ -22,26 +28,29 @@ const int CSoftActivities::run() {
 void CSoftActivities::initialize(HWND dialog) {
 	_dialog = dialog;
 
-	auto c = readConfig();
-	if (c->defaultGroupPath != NULL) {
-		loadActivityGroups(c->defaultGroupPath);
+	_config = new CConfig(&dialog);
+	if (_config->read())
+	{
+		if (_config->get()->defaultGroupPath != NULL) {
+			loadActivityGroups(_config->get()->defaultGroupPath);
+		}
+
+		if (_config->get()->defaultActivityPath != NULL) {
+			loadActivities(_config->get()->defaultActivityPath);
+		}
 	}
-	releaseConfig(c);
 }
 
 const bool CSoftActivities::loadActivityGroups(const wchar_t *path) {
-	bool pathAllocated = false;
+	CDirectoryPathDialog pathDialog(path);
 
-	if (path == NULL) {
-		path = getPathByDialog();
-		pathAllocated = true;
+	if (pathDialog.getState() == CDirectoryPathDialog::InteractionState::RELEASED) {
+		if (!pathDialog.open()) {
+			return false;
+		}
 	}
 
-	if (path == NULL) {
-		return false;
-	}
-
-	if (!_consoleApp->readGroups(path)) {
+	if (!_consoleApp->readGroups(pathDialog.getPath())) {
 		// failed to load groups!
 		return false;
 	}
@@ -54,24 +63,23 @@ const bool CSoftActivities::loadActivityGroups(const wchar_t *path) {
 		SendDlgItemMessageW(_dialog, IDC_ACTIVITY_GROUPS, LB_SETITEMDATA, itemId, reinterpret_cast<long>(new wstring(it->first)));
 	}
 
-	if (pathAllocated) {
-		auto c = readConfig();
-		StringCchCopyW(c->defaultGroupPath, MAX_PATH, path);
-		saveConfig(c);
-		releaseConfig(c);
-
-		releasePath(path);
+	if (pathDialog.getState() == CDirectoryPathDialog::InteractionState::PATH) {
+		StringCchCopyW(_config->get()->defaultGroupPath, MAX_PATH, pathDialog.getPath());
+		_config->save();
 	}
 
 	return true;
 }
 
-const bool CSoftActivities::loadActivities() {
+const bool CSoftActivities::loadActivities(const wchar_t *path) {
 	static bool viewInitiated = false;
 
-	auto path = getPathByDialog();
-	if (path == NULL) {
-		return false;
+	CDirectoryPathDialog pathDialog(path);
+
+	if (pathDialog.getState() == CDirectoryPathDialog::InteractionState::RELEASED) {
+		if (!pathDialog.open()) {
+			return false;
+		}
 	}
 
 	auto view = GetDlgItem(_dialog, IDC_GROUP_RESULT);
@@ -83,7 +91,7 @@ const bool CSoftActivities::loadActivities() {
 		LVCOLUMNW c;
 		ZeroMemory(&c, sizeof(LVCOLUMNW));
 
-		c.mask    = LVCF_TEXT | LVCF_WIDTH | LVCF_MINWIDTH;
+		c.mask    = LVCF_TEXT | LVCF_WIDTH | LVCF_MINWIDTH ;
 		c.pszText = L"Aktivitet";
 		c.cx      = 300;
 		c.cxMin   = 200;
@@ -163,7 +171,11 @@ const bool CSoftActivities::loadActivities() {
 	delete groups;
 	groups = NULL;
 
-	releasePath(path);
+	if (pathDialog.getState() == CDirectoryPathDialog::InteractionState::PATH) {
+		StringCchCopyW(_config->get()->defaultActivityPath, MAX_PATH, pathDialog.getPath());
+		_config->save();
+	}
+
 	return true;
 }
 
@@ -187,13 +199,24 @@ const void CSoftActivities::expandSelectedGroup() {
 
 const BOOL CSoftActivities::handleListNotification(const LPARAM param) {
 	auto list = GetDlgItem(_dialog, IDC_GROUP_RESULT);
-
 	auto pnm = (LPNMLISTVIEW)param;
 
-    if (pnm->hdr.hwndFrom == list &&pnm->hdr.code == NM_CUSTOMDRAW)
+    if (pnm->hdr.hwndFrom != list)
+		return FALSE;
+
+	switch (pnm->hdr.code)
     {
-        SetWindowLong(_dialog, DWL_MSGRESULT, (LONG)processCustomListDraw(param));
-        return TRUE;
+		case NM_KEYDOWN: {
+				auto key = (LPNMKEY) pnm->lParam;
+				if (key->nVKey == 'C' && GetKeyState(VK_CONTROL) < 0) {
+					// copy!
+				}
+			}
+			return FALSE;
+
+		case NM_CUSTOMDRAW:
+	        SetWindowLong(_dialog, DWL_MSGRESULT, (LONG)processCustomListDraw(param));
+			return TRUE;
     }
 
 	return FALSE;
@@ -227,39 +250,6 @@ const LRESULT CSoftActivities::processCustomListDraw(const LPARAM param) {
     }
 }
 
-const wchar_t *CSoftActivities::getPathByDialog() {
-	IFileDialog *dialog;
-	IShellItem  *resultItem;
-	HRESULT      result;
-	wchar_t     *fileName = NULL;
-
-    result = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog));
-	if (SUCCEEDED(result)) {
-		result = dialog->Show(NULL);
-
-		if (SUCCEEDED(result)) {
-			result = dialog->GetResult(&resultItem);
-
-			if (SUCCEEDED(result)) {
-				resultItem->GetDisplayName(SIGDN_FILESYSPATH, &fileName);
-				
-				resultItem->Release();
-				resultItem = NULL;
-			}
-		}
-
-		dialog->Release();
-		dialog = NULL;
-	}
-
-	return fileName;
-}
-
-const void CSoftActivities::releasePath(const wchar_t *&path) {
-	CoTaskMemFree((LPVOID )path);
-	path = NULL;
-}
-
 const void CSoftActivities::releaseGroupViews() {
 
 	int count = SendDlgItemMessage(_dialog, IDC_ACTIVITY_GROUPS, LB_GETCOUNT, NULL, NULL);
@@ -270,74 +260,6 @@ const void CSoftActivities::releaseGroupViews() {
 
 	SendDlgItemMessage(_dialog, IDC_ACTIVITY_GROUPS, LB_RESETCONTENT, NULL, NULL);
 	SendDlgItemMessage(_dialog, IDC_GROUPED_ACTIVITIES, LB_RESETCONTENT, NULL, NULL);
-}
-
-CSoftActivities::config_t *CSoftActivities::readConfig() {
-	auto path = getConfigPath();
-	auto c = new config_t;
-	ZeroMemory(c, sizeof(config_t));
-
-	if (path == NULL) {
-		return c;
-	}
-	 
-	ifstream f(path, ios::in | ios::binary);
-	
-	delete path;
-	path = NULL;
-
-	if (!f.is_open()) {
-		return c;
-	}
-
-	f.read((char *) c, sizeof(*c));
-
-	return c;
-}
-
-const void CSoftActivities::releaseConfig(CSoftActivities::config_t *&cptr) {
-	if (cptr != NULL) {
-		delete cptr;
-	}
-	cptr = NULL;
-}
-
-const void CSoftActivities::saveConfig(const CSoftActivities::config_t *c) {
-	auto path = getConfigPath();
-	if (path == NULL) {
-		return;
-	}
-
-	ofstream f;
-	f.open(path, ios::out | ios::binary);
-
-	delete path;
-	path = NULL;
-
-	if (!f.is_open()) {
-		return;
-	}
-
-	f.write((char *) c, sizeof(*c));
-}
-
-const wchar_t *CSoftActivities::getConfigPath() {
-	wchar_t *path = new wchar_t[MAX_PATH];
-	
-	if (FAILED( SHGetFolderPathW(_dialog, CSIDL_APPDATA, NULL, 0, path) )) {
-		return NULL;
-	}
-
-	StringCchCatW(path, MAX_PATH, L"\\SoftActivities");
-
-	auto attr = GetFileAttributes(path);
-	if (attr == INVALID_FILE_ATTRIBUTES) {
-		CreateDirectory(path, NULL);
-	}
-
-	StringCchCatW(path, MAX_PATH, L"\\Configuration.dat");
-
-	return path;
 }
 
 //
@@ -369,7 +291,7 @@ BOOL CALLBACK CSoftActivities::dlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 		switch (wmId)
 		{
 		case ID_LOAD_LOADACTIVITIES:
-			app->loadActivities();
+			app->loadActivities(NULL);
 			break;
 		case ID_LOAD_LOADACTIVITYGROUPS:
 			app->loadActivityGroups(NULL);

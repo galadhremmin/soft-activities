@@ -1,5 +1,9 @@
 #pragma once
 
+#if WIN32 && !_CONSOLE
+#define WIN32_GUI
+#endif
+
 #ifndef __APP_H__
 #define __APP_H__
 
