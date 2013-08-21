@@ -6,7 +6,12 @@
 #include "DirectoryPathDialog.h"
 #include "..\..\Utilities.h"
 
+// Inline helper methods, defined at the end of the file
+inline void DeallocateActivityGroupItem(const HWND dialog, const int index);
+inline void DeallocateActivityItem(const HWND dialog, const int index);
+
 CSoftActivities::CSoftActivities(HINSTANCE hInstance) {
+	_dialog = NULL;
 	_instance = hInstance;
 	_consoleApp = new CApp(0, NULL);
 }
@@ -180,7 +185,7 @@ const bool CSoftActivities::loadActivities(const wchar_t *path) {
 }
 
 const void CSoftActivities::expandSelectedGroup() {
-	int  itemIndex = SendDlgItemMessage(_dialog, IDC_ACTIVITY_GROUPS, LB_GETCURSEL, NULL, NULL);
+	int  itemIndex = SendDlgItemMessageW(_dialog, IDC_ACTIVITY_GROUPS, LB_GETCURSEL, NULL, NULL);
 	if (itemIndex == LB_ERR) {
 		return;
 	}
@@ -222,8 +227,95 @@ const BOOL CSoftActivities::handleListNotification(const LPARAM param) {
 	return FALSE;
 }
 
-void CSoftActivities::removeActivity(const int index) {
+void CSoftActivities::addActivity(const wchar_t *itemDescription) {
+	const int itemTextLength = 255;
+	wchar_t itemText[itemTextLength];
 
+	if (itemDescription == NULL) {
+		GetDlgItemText(_dialog, IDC_ACTIVITY_ID, itemText, itemTextLength);
+	} else {
+		StringCchCopyW(itemText, itemTextLength, itemDescription);
+	}
+
+	if (*itemText == '\0') {
+		return;
+	}
+
+	// Try to find items with the exact same string
+	int itemCount = SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_GETCOUNT, NULL, NULL);
+	for (int i = 0; i < itemCount; i += 1) {
+		// Get the string length for the current item and allocate a buffer of sufficient size
+		int length = SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_GETTEXTLEN, i, NULL) + 1;
+
+		// automatically skip items longer than the max buffer size
+		if (length > itemTextLength) {
+			continue;
+		}
+
+		wchar_t *tmp = new wchar_t[length];
+		
+		// make sure to null terminate the buffer
+		memset(tmp, 0, sizeof(wchar_t) * length);
+
+		// Acquire the string into the buffer
+		SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_GETTEXT, i, (LPARAM) (LPWSTR) tmp);
+
+		// compare the two strings and determine if there would be doublettes if this item was added
+		if (!lstrcmpW(tmp, itemText)) {
+			MessageBoxW(_dialog, L"Denna aktivitet har redan tilldelats denna grupp.", L"Ny aktivitet", MB_OK | MB_ICONINFORMATION);
+			delete [] tmp;
+			return;
+		}
+
+		delete [] tmp;
+		tmp = NULL;
+	}
+
+	// Add the item to the collection
+	auto index = SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_ADDSTRING, NULL, reinterpret_cast<long>(itemText));
+	if (index == LB_ERR) {
+		return;
+	}
+
+	SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_SETCURSEL, index, NULL);
+
+	// Empty the text field
+	SendDlgItemMessageW(_dialog, IDC_ACTIVITY_ID, WM_SETTEXT, NULL, NULL);
+}
+
+void CSoftActivities::removeActivity(int index) {
+	if (index < 0) {
+		index = SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_GETCURSEL, NULL, NULL);
+		if (index == LB_ERR) {
+			return;
+		}
+	}
+
+	// Make sure that the index is within the interval of correct indexes
+	auto itemCount = SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_GETCOUNT, NULL, NULL);
+	if (index < 0 || index >= itemCount) {
+		return;
+	}
+
+	// Deallocate potential resources defined to the specified item and delete it entirely from the list box
+	DeallocateActivityItem(_dialog, index);
+	SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_DELETESTRING, index, NULL);
+	
+	// Select the closest next item in the list
+	if (itemCount - 1 < 1) {
+		return;
+	}
+
+	index -= 1;
+	if (index < 0) {
+		index += 1;
+
+		if (index >= itemCount - 1) {
+			return;
+		}
+	}
+
+	SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_SETCURSEL, index, NULL);
 }
 
 const LRESULT CSoftActivities::processCustomListDraw(const LPARAM param) {
@@ -256,14 +348,13 @@ const LRESULT CSoftActivities::processCustomListDraw(const LPARAM param) {
 
 const void CSoftActivities::releaseGroupViews() {
 
-	int count = SendDlgItemMessage(_dialog, IDC_ACTIVITY_GROUPS, LB_GETCOUNT, NULL, NULL);
+	int count = SendDlgItemMessageW(_dialog, IDC_ACTIVITY_GROUPS, LB_GETCOUNT, NULL, NULL);
 	for (int i = 0; i < count; ++i) {
-		auto item = SendDlgItemMessage(_dialog, IDC_ACTIVITY_GROUPS, LB_GETITEMDATA, i, NULL);
-		delete reinterpret_cast<wstring *>(item);
+		DeallocateActivityGroupItem(_dialog, i);
 	}
 
-	SendDlgItemMessage(_dialog, IDC_ACTIVITY_GROUPS, LB_RESETCONTENT, NULL, NULL);
-	SendDlgItemMessage(_dialog, IDC_GROUPED_ACTIVITIES, LB_RESETCONTENT, NULL, NULL);
+	SendDlgItemMessageW(_dialog, IDC_ACTIVITY_GROUPS, LB_RESETCONTENT, NULL, NULL);
+	SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_RESETCONTENT, NULL, NULL);
 }
 
 //
@@ -295,7 +386,7 @@ BOOL CALLBACK CSoftActivities::dlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 		switch (wmId)
 		{
 		case IDC_ADD_ACTIVITY:
-			
+			app->addActivity(NULL);
 			break;
 		case IDC_REMOVE_ACTIVITY:
 			app->removeActivity(-1);
@@ -338,4 +429,16 @@ BOOL CALLBACK CSoftActivities::dlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 	}
 
 	return TRUE;
+}
+
+void DeallocateActivityGroupItem(const HWND dialog, const int index) {
+	auto item = SendDlgItemMessageW(dialog, IDC_ACTIVITY_GROUPS, LB_GETITEMDATA, index, NULL);
+	auto data = reinterpret_cast<wstring *>(item);
+	if (data != NULL) {
+		delete data;
+	}
+}
+
+void DeallocateActivityItem(const HWND dialog, const int index) {
+	// there is nothing to deallocate
 }

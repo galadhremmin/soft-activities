@@ -16,7 +16,9 @@ public:
 	const bool loadActivities(const wchar_t *path);
 	const void expandSelectedGroup();
 	const BOOL handleListNotification(const LPARAM);
-	void removeActivity(const int index);
+
+	void addActivity(const wchar_t *itemDescription);
+	void removeActivity(int index);
 
 protected:
 	const LRESULT processCustomListDraw(const LPARAM);
