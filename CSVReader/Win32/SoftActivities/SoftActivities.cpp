@@ -107,7 +107,7 @@ const bool CSoftActivities::loadActivities(const wchar_t *path) {
 		ListView_DeleteAllItems(view);
 	}
 
-	if (!_consoleApp->readHours(path)) {
+	if (!_consoleApp->readHours(pathDialog.getPath())) {
 		// Load failed
 		MessageBoxExW(_dialog, L"Failed to load list of activities. Is the file formatted correctly?", L"Error", MB_OK | MB_ICONERROR, NULL);
 	}

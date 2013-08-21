@@ -12,9 +12,6 @@ CConfig::~CConfig(void)
 bool CConfig::read() {	
 	auto path = this->getPath();
 
-	// release existing configuration
-	this->release();
-
 	if (path == NULL) {
 		return false;
 	}
@@ -22,12 +19,15 @@ bool CConfig::read() {
 	// try to open the configuration file in binary reading mode
 	ifstream f(path, ios::in | ios::binary);
 	
-	delete path;
+	delete [] path;
 	path = NULL;
 
 	if (!f.is_open()) {
 		return false;
 	}
+
+	// release existing configuration
+	this->release();
 
 	// read the struct from file, assuming it is correctly formatted
 	auto c = new config_t;
@@ -42,6 +42,11 @@ bool CConfig::read() {
 }
 
 CConfig::config_t *CConfig::get() {
+	if (_loadedConfig == NULL) {
+		_loadedConfig = new CConfig::config_t;
+		ZeroMemory(_loadedConfig, sizeof(CConfig::config_t));
+	}
+
 	return _loadedConfig;
 }
 
@@ -61,7 +66,7 @@ const void CConfig::save() {
 	ofstream f;
 	f.open(path, ios::out | ios::binary);
 
-	delete path;
+	delete [] path;
 	path = NULL;
 
 	if (!f.is_open()) {

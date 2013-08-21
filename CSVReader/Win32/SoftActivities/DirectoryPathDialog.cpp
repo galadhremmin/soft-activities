@@ -2,6 +2,9 @@
 #include "DirectoryPathDialog.h"
 
 CDirectoryPathDialog::CDirectoryPathDialog(const wchar_t *initialPath) {
+	_state = InteractionState::RELEASED;
+	_filePath = NULL;
+
 	this->setPath(initialPath, true);
 }
 
@@ -55,6 +58,10 @@ const CDirectoryPathDialog::InteractionState CDirectoryPathDialog::getState() co
 
 void CDirectoryPathDialog::setPath(const wchar_t *path, const bool initial) {
 	this->release();
+
+	if (path != NULL && *path == '\0') {
+		path = NULL;
+	}
 	
 	if (path == NULL) {
 		_state = initial ? InteractionState::RELEASED : InteractionState::CANCELLED;
