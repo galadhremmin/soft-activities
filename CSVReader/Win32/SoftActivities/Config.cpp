@@ -30,13 +30,15 @@ bool CConfig::read() {
 	this->release();
 
 	// read the struct from file, assuming it is correctly formatted
-	auto c = new config_t;
-	ZeroMemory(c, sizeof(config_t));
-	f.read((char *) c, sizeof(*c));
+	auto config = new config_t;
+	auto configS = sizeof(config_t);
+	ZeroMemory(config, configS);
+
+	f.read((char *) config, configS);
 	f.close();
 
 	// do not bother with validation at this stage - just assigned the result as the loaded configuration
-	_loadedConfig = c;
+	_loadedConfig = config;
 	
 	return true;
 }

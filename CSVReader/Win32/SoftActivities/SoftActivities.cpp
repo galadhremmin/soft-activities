@@ -165,7 +165,7 @@ const bool CSoftActivities::loadActivities(const wchar_t *path) {
 		item.pszText  = (LPWSTR) totalString.c_str();
 		item.iSubItem = 1;
 
-		ListView_SetItem(view, &item);
+		ListView_SetItem(view, &item); 
 	}
 
 	delete groups;
@@ -220,6 +220,10 @@ const BOOL CSoftActivities::handleListNotification(const LPARAM param) {
     }
 
 	return FALSE;
+}
+
+void CSoftActivities::removeActivity(const int index) {
+
 }
 
 const LRESULT CSoftActivities::processCustomListDraw(const LPARAM param) {
@@ -290,6 +294,12 @@ BOOL CALLBACK CSoftActivities::dlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 		// Parse the menu selections:
 		switch (wmId)
 		{
+		case IDC_ADD_ACTIVITY:
+			
+			break;
+		case IDC_REMOVE_ACTIVITY:
+			app->removeActivity(-1);
+			break;
 		case ID_LOAD_LOADACTIVITIES:
 			app->loadActivities(NULL);
 			break;
