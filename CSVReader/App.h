@@ -40,6 +40,7 @@ public:
     const bool output(void) const;
 	const hours_map_t *getHours() const;
 	const groups_map_t *getGroups() const;
+	void clearHours();
 
 private:
     CArguments *_args;

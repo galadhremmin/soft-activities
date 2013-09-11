@@ -24,12 +24,7 @@ CApp::~CApp(void)
     delete _args;
     _args = NULL;
 
-    for (hours_map_t::const_iterator activity = _hours.begin(); activity != _hours.end(); ++activity) {
-        for (hours_list_t::const_iterator item = (*activity).second.begin(); item != (*activity).second.end(); ++item) {
-            delete *item;
-        }
-    }
-    _hours.clear();
+	this->clearHours();
 }
 
 const CApp::retcode_t CApp::run(void) {
@@ -244,6 +239,15 @@ const CApp::hours_map_t *CApp::getHours() const {
 
 const CApp::groups_map_t *CApp::getGroups() const {
 	return & _groups;
+}
+
+void CApp::clearHours() {
+    for (hours_map_t::const_iterator activity = _hours.begin(); activity != _hours.end(); ++activity) {
+        for (hours_list_t::const_iterator item = (*activity).second.begin(); item != (*activity).second.end(); ++item) {
+            delete *item;
+        }
+    }
+    _hours.clear();
 }
 
 const bool CApp::output(void) const {

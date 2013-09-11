@@ -112,6 +112,7 @@ const bool CSoftActivities::loadActivities(const wchar_t *path) {
 		ListView_DeleteAllItems(view);
 	}
 
+	_consoleApp->clearHours();
 	if (!_consoleApp->readHours(pathDialog.getPath())) {
 		// Load failed
 		MessageBoxExW(_dialog, L"Failed to load list of activities. Is the file formatted correctly?", L"Error", MB_OK | MB_ICONERROR, NULL);
@@ -121,6 +122,8 @@ const bool CSoftActivities::loadActivities(const wchar_t *path) {
 	wstring title;
 	bool chargeable;
 	int chargeableCount = 0;
+
+	ListView_DeleteAllItems(view);
 
 	auto groups = _consoleApp->group(total);
 	for (auto it = groups->begin(); it != groups->end(); ++it) {
