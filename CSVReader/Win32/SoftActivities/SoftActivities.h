@@ -12,6 +12,7 @@ public:
 
 	const int run();
 	void initialize(HWND);
+	const void resize(const WPARAM) const;
 	const bool loadActivityGroups(const wchar_t *path);
 	const bool loadActivities(const wchar_t *path);
 	const void expandSelectedGroup();
@@ -21,6 +22,7 @@ public:
 	void removeActivity(int index);
 
 protected:
+	void initializeResizing();
 	const LRESULT processCustomListDraw(const LPARAM);
 	const void releaseGroupViews();
 
@@ -30,6 +32,7 @@ private:
 	HWND _dialog;
 	CApp *_consoleApp;
 	CConfig *_config;
+	int _windowPadding;
 
 	static BOOL CALLBACK dlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 

@@ -44,6 +44,63 @@ void CSoftActivities::initialize(HWND dialog) {
 			loadActivities(_config->get()->defaultActivityPath);
 		}
 	}
+
+	this->initializeResizing();
+}
+
+void CSoftActivities::initializeResizing() {
+	// Calculate the result boxes' offset within the client window. The result will be used
+	// to resize the dialog item when the user changes the size of the client window.
+	//
+	// This is a hack-ish solution, as anchors doesn't seem to exist in vanilla Win32.
+	_windowPadding = 0;
+	HWND view = GetDlgItem(_dialog, IDC_GROUP_RESULT);
+	if (view) {
+		RECT rect;
+		POINT point;
+
+		// Get the location of the window on the screen
+		GetWindowRect(view, &rect);
+
+		point.x = rect.left;
+		point.y = rect.top;
+
+		// Turn these coordinates into local coordiantes, within the dialog window.
+		ScreenToClient(GetParent(view), &point);
+
+		_windowPadding = point.x;
+	}
+}
+
+const void CSoftActivities::resize(const WPARAM wParam) const {
+	RECT  rootSize, size;
+	POINT point;
+	HDWP  wp;
+	HWND  view;
+
+	// Get the root window size. This will be used while resizing.
+	GetClientRect(_dialog, &rootSize);
+
+	// Allocates memory for a multiple window position structure. In this case, however, there will 
+	// only be one (1) window we'll resize.
+	wp = BeginDeferWindowPos(1);
+
+	view = GetDlgItem(_dialog, IDC_GROUP_RESULT);
+
+	// Get the window's position on the screen (not relative to the root window)
+	GetWindowRect(view, &size);
+
+	point.x = size.left;
+	point.y = size.top;
+
+	// Convert the coordinates into local coordinates within the window's parent window (wow, this is really windows!)
+	ScreenToClient(GetParent(view), &point);
+
+	// Instruct the window to change its size. The SWP_NOMOVE flag ensures that the window isn't moved.
+	DeferWindowPos(wp, view, NULL, 0, 0, rootSize.right - _windowPadding * 2, rootSize.bottom - point.y - _windowPadding, SWP_NOMOVE);
+
+	// Commit the changes.
+	EndDeferWindowPos(wp);
 }
 
 const bool CSoftActivities::loadActivityGroups(const wchar_t *path) {
@@ -426,6 +483,9 @@ BOOL CALLBACK CSoftActivities::dlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 		break;
 	case WM_CLOSE:
 		EndDialog(hWnd, 0);
+		break;
+	case WM_SIZE:
+		app->resize(wParam);
 		break;
 	default:
 		return FALSE;
