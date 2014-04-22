@@ -7,8 +7,8 @@
 #include "..\..\Utilities.h"
 
 // Inline helper methods, defined at the end of the file
-inline void DeallocateActivityGroupItem(const HWND dialog, const int index);
-inline void DeallocateActivityItem(const HWND dialog, const int index);
+inline void DeallocateActivityGroupItem(const HWND dialog, const LRESULT index);
+inline void DeallocateActivityItem(const HWND dialog, const LRESULT index);
 
 CSoftActivities::CSoftActivities(HINSTANCE hInstance) {
 	_dialog = NULL;
@@ -26,23 +26,29 @@ CSoftActivities::~CSoftActivities() {
 	}
 }
 
-const int CSoftActivities::run() {
+const INT_PTR CSoftActivities::run() {
 	return DialogBoxParamW(_instance, MAKEINTRESOURCE(IDD_SOFTACTIVITIES_DIALOG), NULL, CSoftActivities::dlgProc, reinterpret_cast<long>(this));
 }
 
 void CSoftActivities::initialize(HWND dialog) {
 	_dialog = dialog;
 
-	_config = new CConfig(&dialog);
-	if (_config->read())
-	{
-		if (_config->get()->defaultGroupPath != NULL) {
-			loadActivityGroups(_config->get()->defaultGroupPath);
-		}
+	try {
+		_config = new CConfig(&dialog);
+		if (_config->read())
+		{
+			if (_config->get()->defaultGroupPath != NULL) {
+				loadActivityGroups(_config->get()->defaultGroupPath);
+			}
 
-		if (_config->get()->defaultActivityPath != NULL) {
-			loadActivities(_config->get()->defaultActivityPath);
+			if (_config->get()->defaultActivityPath != NULL) {
+				loadActivities(_config->get()->defaultActivityPath);
+			}
 		}
+	}
+	catch (exception& ex)
+	{
+		MessageBoxEx(NULL, (LPCWSTR) ex.what(), L"Något gick fel!", MB_OK | MB_ICONERROR, NULL);
 	}
 
 	this->initializeResizing();
@@ -245,7 +251,7 @@ const bool CSoftActivities::loadActivities(const wchar_t *path) {
 }
 
 const void CSoftActivities::expandSelectedGroup() {
-	int  itemIndex = SendDlgItemMessageW(_dialog, IDC_ACTIVITY_GROUPS, LB_GETCURSEL, NULL, NULL);
+	LRESULT itemIndex = SendDlgItemMessageW(_dialog, IDC_ACTIVITY_GROUPS, LB_GETCURSEL, NULL, NULL);
 	if (itemIndex == LB_ERR) {
 		return;
 	}
@@ -280,7 +286,11 @@ const BOOL CSoftActivities::handleListNotification(const LPARAM param) {
 			return FALSE;
 
 		case NM_CUSTOMDRAW:
-	        SetWindowLong(_dialog, DWL_MSGRESULT, (LONG)processCustomListDraw(param));
+#if _M_AMD64
+			SetWindowLong(_dialog, DWLP_MSGRESULT, (LONG)processCustomListDraw(param));
+#else
+			SetWindowLong(_dialog, DWL_MSGRESULT, (LONG)processCustomListDraw(param));
+#endif
 			return TRUE;
     }
 
@@ -302,10 +312,10 @@ void CSoftActivities::addActivity(const wchar_t *itemDescription) {
 	}
 
 	// Try to find items with the exact same string
-	int itemCount = SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_GETCOUNT, NULL, NULL);
+	LRESULT itemCount = SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_GETCOUNT, NULL, NULL);
 	for (int i = 0; i < itemCount; i += 1) {
 		// Get the string length for the current item and allocate a buffer of sufficient size
-		int length = SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_GETTEXTLEN, i, NULL) + 1;
+		LRESULT length = SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_GETTEXTLEN, i, NULL) + 1;
 
 		// automatically skip items longer than the max buffer size
 		if (length > itemTextLength) {
@@ -343,7 +353,7 @@ void CSoftActivities::addActivity(const wchar_t *itemDescription) {
 	SendDlgItemMessageW(_dialog, IDC_ACTIVITY_ID, WM_SETTEXT, NULL, NULL);
 }
 
-void CSoftActivities::removeActivity(int index) {
+void CSoftActivities::removeActivity(LRESULT index) {
 	if (index < 0) {
 		index = SendDlgItemMessageW(_dialog, IDC_GROUPED_ACTIVITIES, LB_GETCURSEL, NULL, NULL);
 		if (index == LB_ERR) {
@@ -408,8 +418,8 @@ const LRESULT CSoftActivities::processCustomListDraw(const LPARAM param) {
 
 const void CSoftActivities::releaseGroupViews() {
 
-	int count = SendDlgItemMessageW(_dialog, IDC_ACTIVITY_GROUPS, LB_GETCOUNT, NULL, NULL);
-	for (int i = 0; i < count; ++i) {
+	LRESULT count = SendDlgItemMessageW(_dialog, IDC_ACTIVITY_GROUPS, LB_GETCOUNT, NULL, NULL);
+	for (LRESULT i = 0; i < count; ++i) {
 		DeallocateActivityGroupItem(_dialog, i);
 	}
 
@@ -427,9 +437,12 @@ const void CSoftActivities::releaseGroupViews() {
 //  WM_DESTROY	- post a quit message and return
 //
 //
-BOOL CALLBACK CSoftActivities::dlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK CSoftActivities::dlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	static CSoftActivities *app;
+
+	if (!IsWindow(hWnd))
+		return FALSE;
 
 	int wmId, wmEvent;
 	switch (message)
@@ -494,7 +507,7 @@ BOOL CALLBACK CSoftActivities::dlgProc(HWND hWnd, UINT message, WPARAM wParam, L
 	return TRUE;
 }
 
-void DeallocateActivityGroupItem(const HWND dialog, const int index) {
+void DeallocateActivityGroupItem(const HWND dialog, const LRESULT index) {
 	auto item = SendDlgItemMessageW(dialog, IDC_ACTIVITY_GROUPS, LB_GETITEMDATA, index, NULL);
 	auto data = reinterpret_cast<wstring *>(item);
 	if (data != NULL) {
@@ -502,6 +515,6 @@ void DeallocateActivityGroupItem(const HWND dialog, const int index) {
 	}
 }
 
-void DeallocateActivityItem(const HWND dialog, const int index) {
+void DeallocateActivityItem(const HWND dialog, const LRESULT index) {
 	// there is nothing to deallocate
 }

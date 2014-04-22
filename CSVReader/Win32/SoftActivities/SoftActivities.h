@@ -10,7 +10,7 @@ public:
 	CSoftActivities(HINSTANCE hInstance);
 	~CSoftActivities();
 
-	const int run();
+	const INT_PTR run();
 	void initialize(HWND);
 	const void resize(const WPARAM) const;
 	const bool loadActivityGroups(const wchar_t *path);
@@ -19,7 +19,7 @@ public:
 	const BOOL handleListNotification(const LPARAM);
 
 	void addActivity(const wchar_t *itemDescription);
-	void removeActivity(int index);
+	void removeActivity(LRESULT index);
 
 protected:
 	void initializeResizing();
@@ -34,6 +34,5 @@ private:
 	CConfig *_config;
 	int _windowPadding;
 
-	static BOOL CALLBACK dlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
+	static INT_PTR CALLBACK dlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
