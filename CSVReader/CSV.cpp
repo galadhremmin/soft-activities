@@ -27,7 +27,7 @@ const bool CCSV::read(void) {
     // is UTF-8. This performs the conversion.
     size_t size = _fileName.size() + 1;
     char *ansiFile = new char[size];
-    memset(ansiFile, 0, size);
+    memset(ansiFile, 0, size * sizeof(char));
     size = wcstombs(ansiFile, _fileName.c_str(), size);
     ansiFile[size] = 0;
     
