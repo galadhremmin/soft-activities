@@ -102,6 +102,30 @@ const bool CApp::readGroups(const wstring fileName) {
     return true;
 }
 
+const long CApp::readDate(const wstring value) const {
+	if (value.length() < 10) {
+		return 0;
+	}
+	
+	long year, month, day;
+	wstringstream ss;
+
+	ss << value.substr(0, 4);
+	ss >> year;
+
+	ss.clear();
+	
+	ss << value.substr(5, 2);
+	ss >> month;
+
+	ss.clear();
+
+	ss << value.substr(8, 2);
+	ss >> day;
+
+	return year * 10000 + month * 100 + day;
+}
+
 const bool CApp::readHours(const wstring fileName) {
     
 #ifdef DEBUG
@@ -115,7 +139,7 @@ const bool CApp::readHours(const wstring fileName) {
     }
     
     static const wchar_t *valueKeys[] = {
-        L"textBox2", L"textBox1", L"htmlTextBox1", L"textBox5", L"CommentsTB"
+		L"textBox2", L"textBox1", L"htmlTextBox1", L"textBox3", L"textBox5", L"CommentsTB"
     };
     static const size_t valueKeysCount = 5; 
 
@@ -141,9 +165,9 @@ const bool CApp::readHours(const wstring fileName) {
             Utilities::swedishNotation(row->at(valueKeys[0])),
             row->at(valueKeys[1]), 
             Utilities::swedishNotation(row->at(valueKeys[2])), 
-            0L, 
-            row->at(valueKeys[3]), 
-            row->at(valueKeys[4])
+            this->readDate(row->at(valueKeys[3])), 
+            row->at(valueKeys[4]), 
+            row->at(valueKeys[5])
         );
 
         _hours[row->at(L"htmlTextBox9")].push_back(entry);

@@ -6,6 +6,9 @@
 #include "DirectoryPathDialog.h"
 #include "..\..\Utilities.h"
 
+#define ROW_POSITIVE_COLOR 2
+#define ROW_NEGATIVE_COLOR 1
+
 // Inline helper methods, defined at the end of the file
 inline void DeallocateActivityGroupItem(const HWND dialog, const LRESULT index);
 inline void DeallocateActivityItem(const HWND dialog, const LRESULT index);
@@ -187,7 +190,7 @@ const bool CSoftActivities::loadActivities(const wchar_t *path) {
 	int chargeableCount = 0;
 
 	ListView_DeleteAllItems(view);
-
+	
 	auto groups = _consoleApp->group(total);
 	for (auto it = groups->begin(); it != groups->end(); ++it) {
 		LVITEMW item;
@@ -205,7 +208,7 @@ const bool CSoftActivities::loadActivities(const wchar_t *path) {
 		item.pszText  = (LPWSTR) title.c_str();
 		item.iSubItem = 0;
 		item.iItem    = ListView_GetItemCount(view);
-		item.lParam   = chargeable;
+		item.lParam   = chargeable ? ROW_POSITIVE_COLOR : ROW_NEGATIVE_COLOR;
 
 		ListView_InsertItem(view, &item);
 
@@ -225,18 +228,59 @@ const bool CSoftActivities::loadActivities(const wchar_t *path) {
 		ZeroMemory(&item, sizeof(LVITEMW));
 
 		item.mask = LVIF_TEXT | LVIF_PARAM;
-		item.pszText  = L"Total";
+		item.pszText = L"Total";
 		item.iSubItem = 0;
-		item.iItem    = ListView_GetItemCount(view);
-		item.lParam   = chargeable;
+		item.iItem = ListView_GetItemCount(view);
+		item.lParam = chargeable ? ROW_POSITIVE_COLOR : ROW_NEGATIVE_COLOR;
 
 		ListView_InsertItem(view, &item);
 
-		item.mask     = LVIF_TEXT;
-		item.pszText  = (LPWSTR) totalString.c_str();
+		item.mask = LVIF_TEXT;
+		item.pszText = (LPWSTR)totalString.c_str();
 		item.iSubItem = 1;
 
-		ListView_SetItem(view, &item); 
+		ListView_SetItem(view, &item);
+
+		// Find the oldest and the most recent report entry. These extremes will define the reporting period.
+		auto activities = _consoleApp->getHours();
+		
+		long dateLow = LONG_MAX;
+		long dateHigh = LONG_MIN;
+
+		for (auto activity = activities->begin(); activity != activities->end(); activity++) {
+			for (auto hour = (*activity).second.begin(); hour != (*activity).second.end(); hour++) {
+				long date = (*hour)->getDate();
+
+				if (dateLow > date) {
+					dateLow = date;
+				}
+
+				if (dateHigh < date) {
+					dateHigh = date;
+				}
+			}
+		}
+
+#define DateParts(x) \
+			((x) / 10000), (((x) % 10000) / 100), ((x) % 10)
+
+		wchar_t *dateString = new wchar_t[24];
+		swprintf_s(dateString, 24, L"%ld-%02ld-%02ld - %ld-%02ld-%02ld", DateParts(dateLow), DateParts(dateHigh));
+
+		ZeroMemory(&item, sizeof(LVITEMW));
+
+		item.mask = LVIF_TEXT | LVIF_PARAM;
+		item.pszText = L"Period";
+		item.iSubItem = 0;
+		item.iItem = ListView_GetItemCount(view);
+
+		ListView_InsertItem(view, &item);
+
+		item.mask = LVIF_TEXT;
+		item.pszText = (LPWSTR)dateString;
+		item.iSubItem = 1;
+
+		ListView_SetItem(view, &item);
 	}
 
 	delete groups;
@@ -400,7 +444,7 @@ const LRESULT CSoftActivities::processCustomListDraw(const LPARAM param) {
 			return CDRF_NOTIFYSUBITEMDRAW;
     
         case CDDS_SUBITEM | CDDS_ITEMPREPAINT:
-			if (item->iSubItem) {
+			if (item->iSubItem && item->nmcd.lItemlParam > 0) {
 				item->clrText   = RGB(255,255,255);
 				
 				if (item->nmcd.lItemlParam) {
